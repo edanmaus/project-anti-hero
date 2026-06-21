@@ -2,24 +2,24 @@ extends CharacterBody2D
 
 signal defeated
 
-const GRAVITY = 980.0
-const SPAWN_POSITION = Vector2(172, 448)
-const ATTACK_RANGE: float = 70.0
-const STOP_DISTANCE: float = 65.0
+@export var GRAVITY = 980.0
+@export var SPAWN_POSITION = Vector2(172, 448)
+@export var ATTACK_RANGE: float = 70.0
+@export var STOP_DISTANCE: float = 65.0
 
-const LUNGE_DAMAGE: int    = 18
-const LUNGE_COOLDOWN: float = 3.0
-const LUNGE_DURATION: float = 0.25
-const LUNGE_SPEED: float   = 450.0
-const LUNGE_RANGE: float   = 220.0
+@export var LUNGE_DAMAGE: int = 18
+@export var LUNGE_COOLDOWN: float = 3.0
+@export var LUNGE_DURATION: float = 0.25
+@export var LUNGE_SPEED: float = 450.0
+@export var LUNGE_RANGE: float = 220.0
 
 # These start at base values and are updated by GameManager on each respawn
-var max_health: int = 100
-var health: int = max_health
-var move_speed: int = 80
-var attack_damage: int = 10
-var attack_cooldown_duration: float = 1.5
+@export var max_health: int = 100
+@export var move_speed: int = 80
+@export var attack_damage: int = 10
+@export var attack_cooldown_duration: float = 1.5
 
+var health: int = max_health
 var is_dead: bool = false
 var is_attacking: bool = false
 var attack_cooldown: float = 0.0
@@ -37,6 +37,18 @@ func _ready() -> void:
 	strike_hitbox.visible = false
 	lunge_hitbox.monitoring = false
 	lunge_hitbox.visible = false
+	strike_hitbox.body_entered.connect(_strike_collides)
+	lunge_hitbox.body_entered.connect(_lunge_collides)
+
+func _strike_collides(body: Node2D) -> void:
+	if not game_over and not is_dead:
+		if body.name == "Boss" and body.has_method("take_damage"):
+			body.take_damage(attack_damage)
+
+func _lunge_collides(body: Node2D) -> void:
+	if not game_over and not is_dead:
+		if body.name == "Boss" and body.has_method("take_damage"):
+			body.take_damage(LUNGE_DAMAGE)
 
 func _physics_process(delta: float) -> void:
 	if is_dead or game_over:
@@ -90,11 +102,6 @@ func perform_strike() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	if not game_over:
-		for body in strike_hitbox.get_overlapping_bodies():
-			if body.name == "Boss" and body.has_method("take_damage"):
-				body.take_damage(attack_damage)
-
 	await get_tree().create_timer(0.2).timeout
 
 	strike_hitbox.monitoring = false
@@ -118,11 +125,6 @@ func perform_lunge() -> void:
 
 	await get_tree().process_frame
 	await get_tree().process_frame
-
-	if not game_over and not is_dead:
-		for body in lunge_hitbox.get_overlapping_bodies():
-			if body.name == "Boss" and body.has_method("take_damage"):
-				body.take_damage(LUNGE_DAMAGE)
 
 	lunge_hitbox.monitoring = false
 	lunge_hitbox.visible = false
@@ -149,19 +151,19 @@ func die() -> void:
 	defeated.emit()
 
 func respawn(new_max_health: int, new_move_speed: int, new_attack_damage: int, new_attack_cooldown: float) -> void:
-	max_health               = new_max_health
-	health                   = max_health
-	move_speed               = new_move_speed
-	attack_damage            = new_attack_damage
+	max_health = new_max_health
+	health = max_health
+	move_speed = new_move_speed
+	attack_damage = new_attack_damage
 	attack_cooldown_duration = new_attack_cooldown
-	position                 = SPAWN_POSITION
-	velocity                 = Vector2.ZERO
-	is_dead                  = false
-	attack_cooldown          = 0.0
-	is_lunging               = false
-	lunge_cooldown           = 0.0
-	lunge_hitbox.monitoring  = false
-	lunge_hitbox.visible     = false
+	position = SPAWN_POSITION
+	velocity = Vector2.ZERO
+	is_dead = false
+	attack_cooldown = 0.0
+	is_lunging = false
+	lunge_cooldown = 0.0
+	lunge_hitbox.monitoring = false
+	lunge_hitbox.visible = false
 
 	print(
 		"Hero respawned! HP: ", health,
